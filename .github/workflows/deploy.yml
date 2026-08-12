@@ -33,16 +33,17 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Check API key secret
+      - name: Require API key secret
         env:
           VITE_DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: |
           if [ -z "$VITE_DATA_GO_KR_KEY" ]; then
-            echo "::warning::DATA_GO_KR_KEY 시크릿이 비어 있습니다. Pages에서 실시간 버스가 동작하지 않습니다."
-            echo "Settings → Secrets and variables → Actions 에 DATA_GO_KR_KEY 를 등록하세요."
-          else
-            echo "DATA_GO_KR_KEY 시크릿 확인됨 (길이 ${#VITE_DATA_GO_KR_KEY})"
+            echo "::error::DATA_GO_KR_KEY 시크릿이 없습니다."
+            echo "Settings → Secrets and variables → Actions → New repository secret"
+            echo "Name: DATA_GO_KR_KEY"
+            exit 1
           fi
+          echo "DATA_GO_KR_KEY 시크릿 확인됨 (길이 ${#VITE_DATA_GO_KR_KEY})"
 
       - name: Install dependencies
         run: npm ci
