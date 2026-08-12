@@ -135,6 +135,12 @@ function toMin(hhmm: string): number {
   return hour * 60 + m
 }
 
+/** 토·일 (공휴일은 미포함 — 현장 확인) */
+export function isWeekend(now = new Date()): boolean {
+  const day = now.getDay()
+  return day === 0 || day === 6
+}
+
 export function getNextTrips(
   trips: GyeonggangTrip[],
   now = new Date(),

@@ -30,6 +30,11 @@ export type OptimalResult = {
   alternatives: RouteOption[]
 }
 
+export type MorningOptions = {
+  /** true면 「지금 판교역」을 기준 시각에 포함 (이미 하차한 경우) */
+  atStation?: boolean
+}
+
 function pad(n: number): string {
   return String(n).padStart(2, '0')
 }
@@ -45,27 +50,41 @@ function nowToMin(now: Date): number {
   return now.getHours() * 60 + now.getMinutes()
 }
 
+/**
+ * HH:mm → 분 단위.
+ * 00:00~02:59는 익일(전날 심야 다이어)로 보고 +24h 한다.
+ * 경강선 자정 전후 정렬·비교용.
+ */
 function hhmmToMin(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number)
   const hour = h < 3 ? h + 24 : h
   return hour * 60 + m
 }
 
+/**
+ * API 스냅샷의 예측분(분)을 fetchedAt 기준으로 보정한 뒤,
+ * 현재 시각(nowMin) 기준 절대 탑승 시각으로 만든다.
+ */
 function getBusBoardMinutes(
   stations: StationGroupArrival[],
   stationKey: 'pangyo-west' | 'eco',
   routeName: string,
-  nowMin: number,
+  now: Date,
 ): number[] {
   const group = stations.find((s) => s.group.key === stationKey)
   const route = group?.routes.find((r) => r.routeName === routeName)
   const arrival = route?.arrival
   if (!arrival) return []
 
+  const nowMin = nowToMin(now)
+  const fetchedAt = group?.fetchedAt ?? now.getTime()
+  const elapsedMin = Math.max(0, (now.getTime() - fetchedAt) / 60_000)
+
   const mins: number[] = []
   for (const p of [arrival.predictTime1, arrival.predictTime2]) {
     if (p === null) continue
-    mins.push(nowMin + Math.max(0, p))
+    const remaining = Math.max(0, p - elapsedMin)
+    mins.push(nowMin + remaining)
   }
   return mins
 }
@@ -103,7 +122,7 @@ function walkStartMin(
 
 function walkDetail(originMin: number, busMin: number, walkMin: number): string {
   if (busMin - originMin >= walkMin) {
-    return `버스까지 ${busMin - originMin}분 · 도보 ${walkMin}분 차감(대기와 겹침)`
+    return `버스까지 ${Math.round(busMin - originMin)}분 · 도보 ${walkMin}분 차감(대기와 겹침)`
   }
   return `버스까지 도보 ${walkMin}분`
 }
@@ -126,14 +145,15 @@ function pickBest(options: RouteOption[]): OptimalResult {
 export function findMorningOptimal(
   now: Date,
   stations: StationGroupArrival[],
+  opts: MorningOptions = {},
 ): OptimalResult {
+  const { atStation = true } = opts
   const nowMin = nowToMin(now)
   const walk = COMMUTE.morning.subwayToBusWalkMin
   const modes = COMMUTE.morning.modes
 
-  // 기준 시각: 지금 역에 있음 + 곧 도착하는 경강선 열차들
   const subwayArrivals = [
-    nowMin,
+    ...(atStation ? [nowMin] : []),
     ...getNextTrips(PANGYO_ARRIVALS, now, 6).map((t) => nowMin + t.inMin),
   ]
 
@@ -141,7 +161,7 @@ export function findMorningOptimal(
 
   for (const subwayArriveMin of subwayArrivals) {
     const fromLabel =
-      subwayArriveMin === nowMin
+      atStation && subwayArriveMin === nowMin
         ? '지금 판교역'
         : `경강선 도착 ${formatClockFromMin(subwayArriveMin)}`
 
@@ -185,17 +205,15 @@ export function findMorningOptimal(
       })
     }
 
-    // 380
-    {
+    if (modes['380'].enabled) {
       const m = modes['380']
-      const boards = getBusBoardMinutes(stations, 'pangyo-west', '380', nowMin)
+      const boards = getBusBoardMinutes(stations, 'pangyo-west', '380', now)
       for (const board of boards.slice(0, 3)) {
         pushBusOption('380', m.label, board, m.rideMin, m.walkToOfficeMin, '판교역서편')
       }
     }
 
-    // 셔틀
-    {
+    if (modes.shuttle.enabled) {
       const m = modes.shuttle
       const deps = getShuttleDepartures('출근', subwayArriveMin)
       for (const board of deps.slice(0, 3)) {
@@ -203,10 +221,9 @@ export function findMorningOptimal(
       }
     }
 
-    // 602-2B (우선순위 최저)
-    {
+    if (modes['602-2B'].enabled) {
       const m = modes['602-2B']
-      const boards = getBusBoardMinutes(stations, 'pangyo-west', '602-2B', nowMin)
+      const boards = getBusBoardMinutes(stations, 'pangyo-west', '602-2B', now)
       for (const board of boards.slice(0, 3)) {
         pushBusOption(
           '602-2B',
@@ -220,7 +237,6 @@ export function findMorningOptimal(
     }
   }
 
-  // 동일 mode+goal 중복 제거
   const dedup = new Map<string, RouteOption>()
   for (const opt of options) {
     const key = `${opt.mode}-${opt.goalMin}-${opt.legs[0]?.at}`
@@ -245,9 +261,16 @@ export function findEveningOptimal(
     busToPangyoRideMin,
     busToSubwayWalkMin,
     subwayBoardBufferMin,
+    modes,
   } = COMMUTE.evening
 
   const options: RouteOption[] = []
+
+  // 출발표 1회 전처리
+  const departures = PANGYO_DEPARTURES.map((t) => ({
+    trip: t,
+    depMin: hhmmToMin(t.time),
+  })).sort((a, b) => a.depMin - b.depMin)
 
   const tryMode = (
     mode: '380' | 'shuttle',
@@ -255,22 +278,16 @@ export function findEveningOptimal(
     boardLabel: string,
   ) => {
     for (const board of boardTimes.slice(0, 3)) {
-      // ① 사무실→버스: 다음 버스 ≥5분이면 도보 차감
       if (!canCatchBus(nowMin, board, officeToBusWalkMin)) continue
 
       const leaveOffice = walkStartMin(nowMin, board, officeToBusWalkMin)
       const pangyoArrive = board + busToPangyoRideMin
 
-      // ② 버스→경강선: 다음 열차까지 (환승도보+여유) 이상이면 환승 도보 차감
       const transferNeed = busToSubwayWalkMin + subwayBoardBufferMin
-      const trains = PANGYO_DEPARTURES.map((t) => ({
-        trip: t,
-        depMin: hhmmToMin(t.time),
-      }))
-        .filter((t) => canCatchBus(pangyoArrive, t.depMin, transferNeed))
-        .sort((a, b) => a.depMin - b.depMin)
+      const train = departures.find((t) =>
+        canCatchBus(pangyoArrive, t.depMin, transferNeed),
+      )
 
-      const train = trains[0]
       if (!train) {
         options.push({
           mode,
@@ -285,7 +302,6 @@ export function findEveningOptimal(
         continue
       }
 
-      // 열차 대기 ≥ 환승도보면 승강장으로 출발 시각을 늦춤
       const startTransfer = walkStartMin(
         pangyoArrive,
         train.depMin - subwayBoardBufferMin,
@@ -336,13 +352,15 @@ export function findEveningOptimal(
     }
   }
 
-  // 380 (생태학습원)
-  const bus380 = getBusBoardMinutes(stations, 'eco', '380', nowMin)
-  tryMode('380', bus380, '생태학습원')
+  if (modes['380'].enabled) {
+    const bus380 = getBusBoardMinutes(stations, 'eco', '380', now)
+    tryMode('380', bus380, '생태학습원')
+  }
 
-  // 셔틀
-  const shuttleDeps = getShuttleDepartures('퇴근', nowMin)
-  tryMode('shuttle', shuttleDeps, '셔틀 승차장')
+  if (modes.shuttle.enabled) {
+    const shuttleDeps = getShuttleDepartures('퇴근', nowMin)
+    tryMode('shuttle', shuttleDeps, '셔틀 승차장')
+  }
 
   const dedup = new Map<string, RouteOption>()
   for (const opt of options.filter((o) => o.catchable)) {
@@ -351,7 +369,6 @@ export function findEveningOptimal(
     if (!prev) dedup.set(key, opt)
   }
 
-  // 퇴근 최적: 가장 빠른 경강선 열차 확보, 동일하면 380 우선
   return pickBest([...dedup.values()])
 }
 

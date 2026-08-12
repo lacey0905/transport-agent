@@ -23,6 +23,8 @@ export type StationGroupArrival = {
   group: StationGroup
   routes: RouteArrival[]
   error: string | null
+  /** 스냅샷 시각(ms). 경로 계산 시 예측분 보정에 사용 */
+  fetchedAt: number
 }
 
 type RawArrival = {
@@ -77,13 +79,10 @@ function matchesRoute(apiName: string, wanted: string): boolean {
 }
 
 function buildArrivalUrl(stationId: string): string {
-  // 로컬: Vite 프록시 (키 노출·CORS 방지)
   if (import.meta.env.DEV) {
     return `/api/bus/busarrivalservice/v2/getBusArrivalListv2?stationId=${stationId}`
   }
 
-  // GitHub Pages는 서버 프록시가 없음 → 빌드 시 주입된 키로 직접 호출
-  // (공공 API는 CORS 미허용이라 공개 CORS 릴레이 경유)
   const key = (import.meta.env.VITE_DATA_GO_KR_KEY || '').trim()
   if (!key) {
     return ''
@@ -95,7 +94,27 @@ function buildArrivalUrl(stationId: string): string {
   return `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`
 }
 
-async function fetchStationArrivalList(stationId: string): Promise<{
+/** API/네트워크 코드를 짧은 한국어로 */
+export function formatBusError(code: string): string {
+  if (code === 'NO_API_KEY') {
+    return '.env에 DATA_GO_KR_KEY를 넣고 개발 서버를 다시 켜 주세요.'
+  }
+  if (code === 'ABORTED') {
+    return '요청이 취소됐어요.'
+  }
+  if (code.startsWith('HTTP_')) {
+    return '버스 서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.'
+  }
+  if (code.startsWith('API_')) {
+    return '버스 도착 정보를 가져오지 못했어요.'
+  }
+  return '버스 정보를 불러오지 못했어요.'
+}
+
+async function fetchStationArrivalList(
+  stationId: string,
+  signal?: AbortSignal,
+): Promise<{
   list: BusArrival[]
   error: string | null
 }> {
@@ -104,7 +123,15 @@ async function fetchStationArrivalList(stationId: string): Promise<{
     throw new Error('NO_API_KEY')
   }
 
-  const res = await fetch(url)
+  let res: Response
+  try {
+    res = await fetch(url, { signal })
+  } catch (e) {
+    if (signal?.aborted || (e instanceof DOMException && e.name === 'AbortError')) {
+      throw new Error('ABORTED')
+    }
+    throw e
+  }
 
   if (res.status === 503) {
     throw new Error('NO_API_KEY')
@@ -116,7 +143,6 @@ async function fetchStationArrivalList(stationId: string): Promise<{
   const data = await res.json()
   const header = data?.response?.msgHeader
   const resultCode = Number(header?.resultCode)
-  // 0 = 성공, 4 = 결과 없음
   if (resultCode !== 0 && resultCode !== 4) {
     return {
       list: [],
@@ -132,9 +158,11 @@ async function fetchStationArrivalList(stationId: string): Promise<{
 
 async function fetchGroupArrivals(
   group: StationGroup,
+  signal?: AbortSignal,
 ): Promise<StationGroupArrival> {
+  const fetchedAt = Date.now()
   const results = await Promise.all(
-    group.stationIds.map((id) => fetchStationArrivalList(id)),
+    group.stationIds.map((id) => fetchStationArrivalList(id, signal)),
   )
 
   const hardError = results.find((r) => r.error)?.error ?? null
@@ -145,20 +173,22 @@ async function fetchGroupArrivals(
       merged.find((item) => matchesRoute(item.routeName, routeName)) ?? null
     return {
       routeName,
-      arrival: arrival
-        ? { ...arrival, routeName } // 표시용 정규 노선명
-        : null,
+      arrival: arrival ? { ...arrival, routeName } : null,
     }
   })
 
   return {
     group,
     routes,
-    // 노선별 결과 없음은 정상일 수 있으므로, 전부 실패일 때만 에러
     error: merged.length === 0 && hardError ? hardError : null,
+    fetchedAt,
   }
 }
 
-export async function fetchWatchedArrivals(): Promise<StationGroupArrival[]> {
-  return Promise.all(STATION_GROUPS.map((group) => fetchGroupArrivals(group)))
+export async function fetchWatchedArrivals(
+  signal?: AbortSignal,
+): Promise<StationGroupArrival[]> {
+  return Promise.all(
+    STATION_GROUPS.map((group) => fetchGroupArrivals(group, signal)),
+  )
 }

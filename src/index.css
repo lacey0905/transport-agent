@@ -1,56 +1,55 @@
 :root {
-  --ink: #12201a;
-  --muted: #5c6d64;
-  --dim: #8a9a91;
-  --paper: #e6ede8;
-  --surface: #f7faf8;
-  --surface-2: #ffffff;
-  --line: color-mix(in srgb, #12201a 10%, transparent);
-  --line-strong: color-mix(in srgb, #12201a 18%, transparent);
-  --bus: #d7263d;
-  --bus-ink: #fff7f7;
-  --rail: #0088b8;
-  --rail-ink: #f3fbff;
-  --shuttle: #1a6b4a;
-  --shuttle-ink: #f2fbf6;
-  --village: #c45c26;
-  --village-ink: #fff8f3;
-  --accent: #0b6e4f;
-  --accent-soft: #c8e6d8;
-  --ok: #1a6b4a;
-  --danger: #b42318;
+  --ink: #eef2f7;
+  --muted: #9aa6b5;
+  --dim: #6d7888;
+  --paper: #0c1016;
+  --surface: #151b24;
+  --surface-2: #1c2430;
+  --line: color-mix(in srgb, #eef2f7 11%, transparent);
+  --line-strong: color-mix(in srgb, #eef2f7 20%, transparent);
+  --bus: #ff5a5f;
+  --bus-ink: #2a0a0c;
+  --rail: #4ec4f0;
+  --rail-ink: #052433;
+  --shuttle: #5ee0a8;
+  --shuttle-ink: #052418;
+  --village: #ffb454;
+  --village-ink: #2a1604;
+  --accent: #ffc857;
+  --accent-soft: color-mix(in srgb, #ffc857 18%, #1c2430);
+  --ok: #5ee0a8;
+  --danger: #ff8b8b;
+  --danger-bg: color-mix(in srgb, #ff5a5f 14%, #151b24);
+  --tab-on: #eef2f7;
+  --tab-on-ink: #0c1016;
   --font-display: 'Space Grotesk', 'Noto Sans KR', sans-serif;
+  --font-logo: 'Unbounded', 'Space Grotesk', sans-serif;
   --font-body: 'Noto Sans KR', sans-serif;
   --radius: 0.7rem;
   --radius-sm: 0.45rem;
   --tap: 44px;
-  --shadow: 0 1px 0 color-mix(in srgb, #12201a 6%, transparent);
+  --shadow: 0 1px 0 color-mix(in srgb, #000 45%, transparent);
+  --bg-wash-a: color-mix(in srgb, #243044 50%, transparent);
+  --bg-wash-b: color-mix(in srgb, #3a2a18 40%, transparent);
+  --bg-grid: color-mix(in srgb, #eef2f7 3.5%, transparent);
   color: var(--ink);
   background-color: var(--paper);
   background-image:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, #b9d4c4 35%, transparent) 0%,
-      transparent 42%
-    ),
-    linear-gradient(
-      115deg,
-      color-mix(in srgb, #9ec4d8 22%, transparent) 0%,
-      transparent 40%
-    ),
+    linear-gradient(180deg, var(--bg-wash-a) 0%, transparent 42%),
+    linear-gradient(115deg, var(--bg-wash-b) 0%, transparent 40%),
     repeating-linear-gradient(
       0deg,
       transparent,
       transparent 23px,
-      color-mix(in srgb, #12201a 3.5%, transparent) 23px,
-      color-mix(in srgb, #12201a 3.5%, transparent) 24px
+      var(--bg-grid) 23px,
+      var(--bg-grid) 24px
     ),
     repeating-linear-gradient(
       90deg,
       transparent,
       transparent 23px,
-      color-mix(in srgb, #12201a 3.5%, transparent) 23px,
-      color-mix(in srgb, #12201a 3.5%, transparent) 24px
+      var(--bg-grid) 23px,
+      var(--bg-grid) 24px
     );
   background-attachment: fixed;
   font-family: var(--font-body);
@@ -58,7 +57,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 *,
