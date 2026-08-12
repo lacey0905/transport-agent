@@ -120,11 +120,17 @@ function walkStartMin(
   return originMin
 }
 
-function walkDetail(originMin: number, busMin: number, walkMin: number): string {
-  if (busMin - originMin >= walkMin) {
-    return `버스까지 ${Math.round(busMin - originMin)}분 · 도보 ${walkMin}분 차감(대기와 겹침)`
+/** 도보 레그용 — 대기는 이전 구간(도착/하차)에 표시하고, 여기선 겹침만 안내 */
+function walkDetail(
+  originMin: number,
+  targetMin: number,
+  walkMin: number,
+  destLabel = '버스',
+): string {
+  if (targetMin - originMin >= walkMin) {
+    return `도보 ${walkMin}분 · ${destLabel} 대기와 겹침`
   }
-  return `버스까지 도보 ${walkMin}분`
+  return `도보 ${walkMin}분 → ${destLabel}`
 }
 
 function pickBest(options: RouteOption[]): OptimalResult {
@@ -176,6 +182,7 @@ export function findMorningOptimal(
       if (!canCatchBus(subwayArriveMin, board, walk)) return
       const startWalk = walkStartMin(subwayArriveMin, board, walk)
       const office = board + rideMin + walkToOfficeMin
+      const waitToBus = Math.round(board - subwayArriveMin)
       options.push({
         mode,
         modeLabel,
@@ -185,7 +192,14 @@ export function findMorningOptimal(
         summary: `${fromLabel} → ${modeLabel} → 회사 ${formatClockFromMin(office)}`,
         catchable: true,
         legs: [
-          { label: '경강선', at: formatClockFromMin(subwayArriveMin), detail: fromLabel },
+          {
+            label: '경강선',
+            at: formatClockFromMin(subwayArriveMin),
+            detail:
+              waitToBus > 0
+                ? `${fromLabel} · 버스 ${waitToBus}분 후`
+                : fromLabel,
+          },
           {
             label: '도보',
             at: formatClockFromMin(startWalk),
@@ -302,12 +316,14 @@ export function findEveningOptimal(
         continue
       }
 
+      const trainReadyMin = train.depMin - subwayBoardBufferMin
       const startTransfer = walkStartMin(
         pangyoArrive,
-        train.depMin - subwayBoardBufferMin,
+        trainReadyMin,
         busToSubwayWalkMin,
       )
       const platformAt = startTransfer + busToSubwayWalkMin
+      const waitToTrain = Math.round(trainReadyMin - pangyoArrive)
 
       options.push({
         mode,
@@ -331,15 +347,19 @@ export function findEveningOptimal(
           {
             label: '판교역 버스 하차',
             at: formatClockFromMin(pangyoArrive),
-            detail: `이동 약 ${busToPangyoRideMin}분`,
+            detail:
+              waitToTrain > 0
+                ? `이동 약 ${busToPangyoRideMin}분 · 열차 ${waitToTrain}분 후`
+                : `이동 약 ${busToPangyoRideMin}분`,
           },
           {
             label: '경강선 승강장',
             at: formatClockFromMin(platformAt),
             detail: walkDetail(
               pangyoArrive,
-              train.depMin - subwayBoardBufferMin,
+              trainReadyMin,
               busToSubwayWalkMin,
+              '열차',
             ),
           },
           {
