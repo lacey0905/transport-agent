@@ -1,5 +1,5 @@
 # Vite → GitHub Pages 배포
-# 사전 설정: Settings → Pages → Build and deployment → Source = GitHub Actions
+# 실패 시: Settings → Pages → Source = GitHub Actions 로도 한 번 저장해 주세요.
 name: Deploy to GitHub Pages
 
 on:
@@ -38,8 +38,24 @@ jobs:
           VITE_DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: npm run build
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+      # Pages 사이트가 없으면 configure-pages / deploy-pages 가 Not Found 로 실패함
+      - name: Ensure Pages site (GitHub Actions)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo
+            try {
+              await github.rest.repos.getPages({ owner, repo })
+              core.info('Pages site already exists')
+            } catch (err) {
+              if (err.status !== 404) throw err
+              await github.rest.repos.createPagesSite({
+                owner,
+                repo,
+                build_type: 'workflow',
+              })
+              core.info('Created Pages site with build_type=workflow')
+            }
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
