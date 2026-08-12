@@ -1,5 +1,7 @@
 # Vite → GitHub Pages 배포
-# 실패 시: Settings → Pages → Source = GitHub Actions 로도 한 번 저장해 주세요.
+# 시크릿: Settings → Secrets → Actions (또는 Environment github-pages)
+#   이름: DATA_GO_KR_KEY
+# 시크릿 추가/수정 후에는 이 워크플로를 다시 실행해야 반영됩니다.
 name: Deploy to GitHub Pages
 
 on:
@@ -19,6 +21,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Environment 시크릿도 빌드에 주입되도록 동일 environment 사용
+    environment: github-pages
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -29,6 +33,17 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Check API key secret
+        env:
+          VITE_DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: |
+          if [ -z "$VITE_DATA_GO_KR_KEY" ]; then
+            echo "::warning::DATA_GO_KR_KEY 시크릿이 비어 있습니다. Pages에서 실시간 버스가 동작하지 않습니다."
+            echo "Settings → Secrets and variables → Actions 에 DATA_GO_KR_KEY 를 등록하세요."
+          else
+            echo "DATA_GO_KR_KEY 시크릿 확인됨 (길이 ${#VITE_DATA_GO_KR_KEY})"
+          fi
+
       - name: Install dependencies
         run: npm ci
 
@@ -38,7 +53,6 @@ jobs:
           VITE_DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: npm run build
 
-      # Pages 사이트가 없으면 configure-pages / deploy-pages 가 Not Found 로 실패함
       - name: Ensure Pages site (GitHub Actions)
         uses: actions/github-script@v7
         with:

@@ -97,7 +97,10 @@ function buildArrivalUrl(stationId: string): string {
 /** API/네트워크 코드를 짧은 한국어로 */
 export function formatBusError(code: string): string {
   if (code === 'NO_API_KEY') {
-    return '.env에 DATA_GO_KR_KEY를 넣고 개발 서버를 다시 켜 주세요.'
+    if (import.meta.env.DEV) {
+      return '.env에 DATA_GO_KR_KEY를 넣고 개발 서버를 다시 켜 주세요.'
+    }
+    return '배포 빌드에 API 키가 없습니다. GitHub Actions에 DATA_GO_KR_KEY 시크릿을 넣고 다시 배포해 주세요.'
   }
   if (code === 'ABORTED') {
     return '요청이 취소됐어요.'
