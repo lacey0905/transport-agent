@@ -2,13 +2,30 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
+
+    <title>PANGYO · Commute</title>
+    <meta
+      name="description"
+      content="판교 출퇴근 최적 경로 · 380 · 셔틀 · 경강선"
+    />
     <meta name="theme-color" content="#0C1016" />
     <meta name="color-scheme" content="dark" />
+    <meta name="format-detection" content="telephone=no, address=no, email=no" />
+
+    <!-- iOS / Android 홈 화면 -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PANGYO" />
+    <meta name="application-name" content="PANGYO" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- iOS 홈 화면: SVG 미지원 → 180×180 PNG 필수 -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,7 +37,6 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Unbounded:wght@600;700&display=swap"
       rel="stylesheet"
     />
-    <title>PANGYO · Commute</title>
   </head>
   <body>
     <div id="root"></div>
