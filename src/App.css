@@ -1,8 +1,12 @@
 .app {
+  --pad-x: 1rem;
+  --edge-left: max(var(--pad-x), env(safe-area-inset-left, 0px));
+  --edge-right: max(var(--pad-x), env(safe-area-inset-right, 0px));
   min-height: 100dvh;
   max-width: 28rem;
   margin: 0 auto;
-  padding: 0 1rem 2.75rem;
+  padding: 0 var(--edge-right) calc(2.75rem + env(safe-area-inset-bottom, 0px))
+    var(--edge-left);
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
@@ -17,8 +21,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin: 0 -1rem;
-  padding: 0.7rem 1rem;
+  margin: 0 calc(-1 * var(--edge-right)) 0 calc(-1 * var(--edge-left));
+  padding: calc(0.7rem + env(safe-area-inset-top, 0px)) var(--edge-right) 0.7rem
+    var(--edge-left);
   background: color-mix(in srgb, var(--paper) 82%, transparent);
   backdrop-filter: blur(14px) saturate(1.1);
   border-bottom: 1px solid var(--line);
