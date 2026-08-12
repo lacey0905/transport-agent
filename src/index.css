@@ -1,0 +1,158 @@
+:root {
+  --ink: #12201a;
+  --muted: #5c6d64;
+  --dim: #8a9a91;
+  --paper: #e6ede8;
+  --surface: #f7faf8;
+  --surface-2: #ffffff;
+  --line: color-mix(in srgb, #12201a 10%, transparent);
+  --line-strong: color-mix(in srgb, #12201a 18%, transparent);
+  --bus: #d7263d;
+  --bus-ink: #fff7f7;
+  --rail: #0088b8;
+  --rail-ink: #f3fbff;
+  --shuttle: #1a6b4a;
+  --shuttle-ink: #f2fbf6;
+  --village: #c45c26;
+  --village-ink: #fff8f3;
+  --accent: #0b6e4f;
+  --accent-soft: #c8e6d8;
+  --ok: #1a6b4a;
+  --danger: #b42318;
+  --font-display: 'Space Grotesk', 'Noto Sans KR', sans-serif;
+  --font-body: 'Noto Sans KR', sans-serif;
+  --radius: 0.7rem;
+  --radius-sm: 0.45rem;
+  --tap: 44px;
+  --shadow: 0 1px 0 color-mix(in srgb, #12201a 6%, transparent);
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, #b9d4c4 35%, transparent) 0%,
+      transparent 42%
+    ),
+    linear-gradient(
+      115deg,
+      color-mix(in srgb, #9ec4d8 22%, transparent) 0%,
+      transparent 40%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 23px,
+      color-mix(in srgb, #12201a 3.5%, transparent) 23px,
+      color-mix(in srgb, #12201a 3.5%, transparent) 24px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 23px,
+      color-mix(in srgb, #12201a 3.5%, transparent) 23px,
+      color-mix(in srgb, #12201a 3.5%, transparent) 24px
+    );
+  background-attachment: fixed;
+  font-family: var(--font-body);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+button {
+  touch-action: manipulation;
+  font: inherit;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1.25rem;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 500,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sweep {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
