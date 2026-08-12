@@ -1,5 +1,5 @@
 # Vite → GitHub Pages 배포
-# https://vite.dev/guide/static-deploy.html#github-pages
+# 사전 설정: Settings → Pages → Build and deployment → Source = GitHub Actions
 name: Deploy to GitHub Pages
 
 on:
@@ -17,19 +17,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: lts/*
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -38,7 +35,6 @@ jobs:
       - name: Build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
-          # Actions secrets에 DATA_GO_KR_KEY 등록 시 실시간 버스 사용 가능
           VITE_DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: npm run build
 
@@ -46,10 +42,17 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: ./dist
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
