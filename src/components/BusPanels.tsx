@@ -54,15 +54,15 @@ export function BusPanels({ stations }: { stations: StationGroupArrival[] }) {
                     label="이번"
                     minutes={arrival.predictTime1}
                     stopsAway={arrival.locationNo1}
+                    stationName={arrival.stationNm1}
                     plate={arrival.plateNo1}
-                    lowPlate={arrival.lowPlate1}
                   />
                   <ArrivalSlot
                     label="다음"
                     minutes={arrival.predictTime2}
                     stopsAway={arrival.locationNo2}
+                    stationName={arrival.stationNm2}
                     plate={arrival.plateNo2}
-                    lowPlate={arrival.lowPlate2}
                   />
                 </div>
               ) : null}

@@ -4,12 +4,20 @@ import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const { Resvg } = require('@resvg/resvg-js')
 
-// favicon.svg 와 같은 P path. iOS가 모서리를 깎으므로 rx 없이 full-bleed.
-const favicon = readFileSync(new URL('../public/favicon.svg', import.meta.url), 'utf8')
-const svg = favicon
-  .replace(/rx="7"\s*/, '')
-  .replace('<svg', '<svg width="180" height="180"')
+/** favicon.svg 와 동일 심볼 · 앱 아이콘용 full-bleed (외곽 rx 없음) */
+const icon = readFileSync(new URL('../public/icon.svg', import.meta.url))
 
-const png = new Resvg(svg, { fitTo: { mode: 'width', value: 180 } }).render().asPng()
-writeFileSync(new URL('../public/apple-touch-icon.png', import.meta.url), png)
-console.log('wrote apple-touch-icon.png', png.length, 'bytes')
+function writePng(size, outRel) {
+  const png = new Resvg(icon, {
+    fitTo: { mode: 'width', value: size },
+  })
+    .render()
+    .asPng()
+  writeFileSync(new URL(outRel, import.meta.url), png)
+  console.log('wrote', outRel, png.length)
+}
+
+writePng(180, '../public/apple-touch-icon.png')
+writePng(192, '../public/icon-192.png')
+writePng(512, '../public/icon-512.png')
+writePng(1024, '../public/iphone-app-icon-1024.png')

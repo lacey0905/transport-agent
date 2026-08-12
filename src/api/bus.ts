@@ -7,10 +7,12 @@ export type BusArrival = {
   predictTime2: number | null
   locationNo1: number | null
   locationNo2: number | null
+  /** 첫번째 차량 현재 위치 정류소명 */
+  stationNm1: string | null
+  /** 두번째 차량 현재 위치 정류소명 */
+  stationNm2: string | null
   plateNo1: string | null
   plateNo2: string | null
-  lowPlate1: boolean
-  lowPlate2: boolean
   flag: string | null
 }
 
@@ -34,11 +36,17 @@ type RawArrival = {
   predictTime2?: number | string
   locationNo1?: number | string
   locationNo2?: number | string
+  stationNm1?: string
+  stationNm2?: string
   plateNo1?: string
   plateNo2?: string
-  lowPlate1?: number | string
-  lowPlate2?: number | string
   flag?: string
+}
+
+function toText(v: unknown): string | null {
+  if (v === undefined || v === null) return null
+  const s = String(v).trim()
+  return s ? s : null
 }
 
 function toNum(v: unknown): number | null {
@@ -60,10 +68,10 @@ function normalize(raw: RawArrival): BusArrival {
     predictTime2: toNum(raw.predictTime2),
     locationNo1: toNum(raw.locationNo1),
     locationNo2: toNum(raw.locationNo2),
-    plateNo1: raw.plateNo1 ?? null,
-    plateNo2: raw.plateNo2 ?? null,
-    lowPlate1: String(raw.lowPlate1) === '1',
-    lowPlate2: String(raw.lowPlate2) === '1',
+    stationNm1: toText(raw.stationNm1),
+    stationNm2: toText(raw.stationNm2),
+    plateNo1: toText(raw.plateNo1),
+    plateNo2: toText(raw.plateNo2),
     flag: raw.flag ?? null,
   }
 }

@@ -1,18 +1,29 @@
 import { formatMinutes } from './ui'
 
+function formatLocation(
+  stationName: string | null | undefined,
+  stopsAway: number | null,
+): string {
+  const name = stationName?.trim() || null
+  if (name && stopsAway !== null) return `${name} · ${stopsAway}개 전`
+  if (name) return name
+  if (stopsAway !== null) return `${stopsAway}개 전`
+  return '위치 정보 없음'
+}
+
 export function ArrivalSlot({
   label,
   minutes,
   stopsAway,
+  stationName,
   plate,
-  lowPlate,
   tone = 'bus',
 }: {
   label: string
   minutes: number | null
   stopsAway: number | null
+  stationName?: string | null
   plate?: string | null
-  lowPlate?: boolean
   tone?: 'bus' | 'rail' | 'shuttle'
 }) {
   const urgent = minutes !== null && minutes <= 3
@@ -23,10 +34,7 @@ export function ArrivalSlot({
     <article className={`slot${urgent ? ` slot--urgent${toneClass}` : ''}`}>
       <p className="slot__label">{label}</p>
       <p className="slot__time">{formatMinutes(minutes)}</p>
-      <p className="slot__meta">
-        {stopsAway !== null ? `${stopsAway}정류장 전` : '위치 정보 없음'}
-        {lowPlate ? ' · 저상' : ''}
-      </p>
+      <p className="slot__meta">{formatLocation(stationName, stopsAway)}</p>
       {plate ? <p className="slot__plate">{plate}</p> : null}
     </article>
   )

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-label="PANGYO">
+  <rect width="512" height="512" fill="#0C1016"/>
+  <rect x="96" y="96" width="320" height="320" rx="24" stroke="#FFC857" stroke-width="51.2"/>
+  <path stroke="#FFC857" stroke-width="51.2" stroke-linecap="round" d="M168 344L344 168"/>
+</svg>
