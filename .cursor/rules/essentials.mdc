@@ -1,0 +1,12 @@
+---
+description: 출퇴근 필수 기준은 docs/essentials.md를 따른다
+alwaysApply: true
+---
+
+# 출퇴근 필수 자료
+
+개발할 때 항상 `docs/essentials.md`를 먼저 읽는다. 출퇴근 구간 시간, 정류장, 노선, 출발 버튼 기준의 출처다.
+
+- 이동 시간·경로를 추측하지 않는다
+- 코드에 남은 옛 값보다 이 문서를 우선한다
+- 기준을 바꾸면 문서와 `src/constants/commute.ts`를 함께 수정한다

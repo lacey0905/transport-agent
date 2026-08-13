@@ -11,6 +11,7 @@ export const STATION_GROUPS: StationGroup[] = [
   {
     key: 'eco',
     name: '판교환경생태학습원',
+    // TAGO nodeId = GGB + 경기 정류소ID
     stationIds: ['206000127'],
     mobileNos: ['7804'],
     routes: ['380'],
@@ -18,11 +19,11 @@ export const STATION_GROUPS: StationGroup[] = [
   {
     key: 'pangyo-west',
     name: '판교역서편',
-    // 7407(시내버스) · 7455(마을버스 등) 둘 다 조회
+    // 7407(시내버스) · 7455(마을버스 등) 둘 다 조회. TAGO: GGB 접두
     stationIds: ['206000681', '206000682'],
     mobileNos: ['7407', '7455'],
     routes: ['380', '602-2B'],
   },
 ]
 
-export const REFRESH_MS = 20_000
+export const REFRESH_MS = 60_000

@@ -1,130 +1,123 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { StationGroupArrival } from '../api/bus'
-import { COMMUTE_LABEL } from '../constants/commute'
-import {
-  findEveningOptimal,
-  findMorningOptimal,
-  suggestCommutePeriod,
-  type RouteOption,
-} from '../lib/optimalRoute'
-import { Icon } from './Icon'
-import { modeBadgeClass, modeIcon } from './ui'
+import { useMemo } from "react";
+import type { StationGroupArrival } from "../api/bus";
+import { COMMUTE, isMorningWindow } from "../constants/commute";
+import { findEveningOptimal, findMorningOptimal } from "../lib/optimalRoute";
+import { Icon } from "./Icon";
+import { CommuteSkeleton } from "./Skeleton";
+import { modeBadgeClass, modeIcon } from "./ui";
 
-function pickByMode(
-  options: RouteOption[],
-  mode: string | null,
-  fallback: RouteOption | null,
-): RouteOption | null {
-  if (!mode) return fallback
-  return options.find((opt) => opt.mode === mode) ?? fallback
-}
+export type StartKind = "home" | "pangyo" | "office" | "exit";
+
+const STARTS: { kind: StartKind; label: string; evening: boolean }[] = [
+  { kind: "home", label: "집", evening: false },
+  { kind: "pangyo", label: "판교역", evening: false },
+  { kind: "office", label: "사무실", evening: true },
+  { kind: "exit", label: "출구", evening: true },
+];
 
 export function CommutePanel({
   now,
   stations,
   ready,
+  refreshing = false,
+  activeKind,
+  onFreeze,
+  onResume,
 }: {
-  now: Date
-  stations: StationGroupArrival[]
-  ready: boolean
+  now: Date;
+  stations: StationGroupArrival[];
+  ready: boolean;
+  refreshing?: boolean;
+  activeKind: StartKind | null;
+  onFreeze: (kind: StartKind) => void;
+  onResume: () => void;
 }) {
-  const suggested = suggestCommutePeriod(now)
-  const [period, setPeriod] = useState<'morning' | 'evening'>(suggested)
-  const [selectedMode, setSelectedMode] = useState<string | null>(null)
-  const [atStation, setAtStation] = useState(true)
+  const morningOpen = isMorningWindow(now);
+  const canUse = (kind: StartKind) => {
+    const evening = STARTS.find((s) => s.kind === kind)?.evening;
+    return evening ? !morningOpen : morningOpen;
+  };
 
-  useEffect(() => {
-    setPeriod(suggested)
-  }, [suggested])
-
-  useEffect(() => {
-    setSelectedMode(null)
-  }, [period])
-
-  const result = useMemo(() => {
-    if (period === 'morning') {
-      return findMorningOptimal(now, stations, { atStation })
+  const toggle = (kind: StartKind) => {
+    if (activeKind === kind) {
+      onResume();
+      return;
     }
-    return findEveningOptimal(now, stations)
-  }, [period, now, stations, atStation])
+    if (!canUse(kind)) return;
+    onFreeze(kind);
+  };
 
-  const options = useMemo(() => {
-    if (!result.best) return [] as RouteOption[]
-    return [result.best, ...result.alternatives]
-  }, [result])
+  const best = useMemo(() => {
+    if (!activeKind) return null;
+    if (activeKind === "office" || activeKind === "exit") {
+      const toBusWalkMin =
+        activeKind === "exit"
+          ? COMMUTE.evening.exitToBusWalkMin
+          : COMMUTE.evening.officeToBusWalkMin;
+      return findEveningOptimal(now, stations, {
+        clock: now,
+        toBusWalkMin,
+        fromLabel: activeKind === "exit" ? "출구" : "사무실",
+      }).best;
+    }
+    return findMorningOptimal(now, stations, {
+      atStation: activeKind === "pangyo",
+      clock: now,
+    }).best;
+  }, [activeKind, stations, now]);
 
-  const selected = pickByMode(options, selectedMode, result.best)
-  const alts = selected
-    ? options.filter((opt) => opt !== selected).slice(0, 3)
-    : []
-  const isRecommended = Boolean(
-    selected && result.best && selected === result.best,
-  )
+  const period =
+    activeKind === "office" || activeKind === "exit"
+      ? "evening"
+      : activeKind
+        ? "morning"
+        : null;
 
   return (
     <section className="commute" aria-label="출퇴근 최적 경로">
-      <div className="tabs" role="tablist" aria-label="출퇴근 전환">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={period === 'morning'}
-          className={`tab${period === 'morning' ? ' tab--on' : ''}`}
-          onClick={() => setPeriod('morning')}
-        >
-          <Icon name="wb_sunny" className="tab__icon" />
-          {COMMUTE_LABEL.morning}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={period === 'evening'}
-          className={`tab${period === 'evening' ? ' tab--on' : ''}`}
-          onClick={() => setPeriod('evening')}
-        >
-          <Icon name="dark_mode" className="tab__icon" />
-          {COMMUTE_LABEL.evening}
-        </button>
+      <div className="commute__start">
+        {STARTS.map(({ kind, label }) => (
+          <button
+            key={kind}
+            type="button"
+            aria-pressed={activeKind === kind}
+            disabled={!canUse(kind) && activeKind !== kind}
+            className={`commute__start-btn${
+              activeKind === kind ? " commute__start-btn--hint" : ""
+            }`}
+            onClick={() => toggle(kind)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      {period === 'morning' ? (
-        <label className="commute__toggle">
-          <input
-            type="checkbox"
-            checked={atStation}
-            onChange={(e) => setAtStation(e.target.checked)}
-          />
-          <span>지금 판교역에 있어요</span>
-        </label>
-      ) : null}
+      {activeKind && refreshing ? <CommuteSkeleton /> : null}
 
-      {!ready && stations.length === 0 ? (
+      {activeKind && !refreshing && !ready && stations.length === 0 ? (
         <p className="state state--loading">경로 계산 중…</p>
       ) : null}
 
-      {selected ? (
+      {activeKind && !refreshing && best ? (
         <article className="commute__best">
           <div className="commute__best-top">
-            <div className={`${modeBadgeClass(selected.mode)} badge--lg`}>
-              <Icon name={modeIcon(selected.mode)} />
-              {selected.modeLabel}
+            <div className={`${modeBadgeClass(best.mode)} badge--lg`}>
+              <Icon name={modeIcon(best.mode)} />
+              {best.modeLabel}
             </div>
-            {isRecommended ? (
-              <span className="badge badge--soft">
-                <Icon name="star" filled />
-                추천
-              </span>
-            ) : (
-              <span className="badge badge--soft">선택됨</span>
-            )}
+            <span className="badge badge--live" aria-label="실시간">
+              <span className="badge--live-dot" aria-hidden />
+              LIVE
+            </span>
           </div>
           <p className="commute__goal-label">
-            <Icon name={period === 'morning' ? 'apartment' : 'train'} />
-            {period === 'morning' ? '회사 도착' : '경강선 탑승'}
+            <Icon name={period === "morning" ? "apartment" : "train"} />
+            {period === "morning" ? "회사 도착" : "경강선 탑승"}
           </p>
-          <p className="commute__goal">{selected.goalTime}</p>
-          <p className="commute__summary">{selected.summary}</p>
+          <p className="commute__goal">{best.goalTime}</p>
+          <p className="commute__summary">{best.summary}</p>
           <ol className="commute__legs">
-            {selected.legs.map((leg) => (
+            {best.legs.map((leg) => (
               <li key={`${leg.label}-${leg.at}`}>
                 <span className="commute__dot" aria-hidden />
                 <span className="commute__leg-time">{leg.at}</span>
@@ -136,46 +129,15 @@ export function CommutePanel({
             ))}
           </ol>
         </article>
-      ) : ready || stations.length > 0 ? (
-        <p className="state">
-          {period === 'morning'
-            ? '지금 탈 수 있는 380·셔틀·602-2B 조합이 없어요. 아래 실시간·셔틀을 확인해 주세요.'
-            : '경강선을 여유 있게 탈 수 있는 380·셔틀 경로가 없어요.'}
-        </p>
       ) : null}
 
-      {alts.length > 0 ? (
-        <>
-          <p className="commute__alts-title">다른 선택</p>
-          <ul className="commute__alts">
-            {alts.map((opt) => {
-              const recommended = opt.mode === result.best?.mode
-              return (
-                <li key={`${opt.mode}-${opt.goalMin}`}>
-                  <button
-                    type="button"
-                    className="commute__alt"
-                    onClick={() => setSelectedMode(opt.mode)}
-                  >
-                    <span className={modeBadgeClass(opt.mode)}>
-                      <Icon name={modeIcon(opt.mode)} />
-                      {opt.modeLabel}
-                    </span>
-                    <span className="commute__alt-text">
-                      <strong>
-                        {opt.goalTime}
-                        {recommended ? ' · 추천' : ''}
-                      </strong>
-                      <em>{opt.summary}</em>
-                    </span>
-                    <Icon name="chevron_right" className="commute__alt-chevron" />
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </>
+      {activeKind && !refreshing && !best && (ready || stations.length > 0) ? (
+        <p className="state">
+          {period === "morning"
+            ? "그때 탈 수 있는 380·셔틀·602-2B 조합이 없어요. 아래 실시간·셔틀을 확인해 주세요."
+            : "그때 경강선을 여유 있게 탈 수 있는 380·셔틀 경로가 없어요."}
+        </p>
       ) : null}
     </section>
-  )
+  );
 }

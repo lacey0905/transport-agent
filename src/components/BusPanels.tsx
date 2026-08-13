@@ -1,35 +1,57 @@
 import type { StationGroupArrival } from '../api/bus'
 import { formatBusError } from '../api/bus'
+import { STATION_GROUPS } from '../constants'
 import { ArrivalSlot } from './ArrivalSlot'
 import { Icon } from './Icon'
 import { Panel } from './Panel'
+import { PanelBodySkeleton } from './Skeleton'
 import { formatMinutes } from './ui'
 
-export function BusPanels({ stations }: { stations: StationGroupArrival[] }) {
+export function BusPanels({
+  stations,
+  refreshing = false,
+}: {
+  stations: StationGroupArrival[]
+  refreshing?: boolean
+}) {
   const liveHint = (item: StationGroupArrival) => {
     const first = item.routes.find((r) => r.arrival?.predictTime1 != null)
     if (!first?.arrival || first.arrival.predictTime1 === null) return '대기 없음'
     return `${first.routeName} ${formatMinutes(first.arrival.predictTime1)}`
   }
 
+  const items =
+    stations.length > 0
+      ? stations
+      : STATION_GROUPS.map((group) => ({
+          group,
+          routes: group.routes.map((routeName) => ({
+            routeName,
+            arrival: null,
+          })),
+          error: null,
+          fetchedAt: 0,
+        }))
+
   return (
     <>
-      {stations.map((item, index) => (
+      {items.map((item) => (
         <Panel
           key={item.group.key}
           icon="directions_bus"
           title={item.group.name}
-          hint={`실시간 · ${liveHint(item)}`}
-          defaultOpen={index === 0}
+          hint={refreshing ? '불러오는 중' : `실시간 · ${liveHint(item)}`}
         >
-          {item.error ? (
+          {refreshing ? <PanelBodySkeleton rows={3} /> : null}
+          {!refreshing && item.error ? (
             <p className="state state--error">
               <Icon name="error" filled />
               {formatBusError(item.error)}
             </p>
           ) : null}
 
-          {item.routes.map(({ routeName, arrival }) => (
+          {!refreshing &&
+            item.routes.map(({ routeName, arrival }) => (
             <div key={routeName} className="route-block">
               <div className="route-head">
                 <span

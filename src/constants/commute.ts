@@ -13,39 +13,33 @@ export const MODE_PRIORITY: Record<CommuteModeId, number> = {
 }
 
 export const COMMUTE = {
-  /** 출근 */
+  /** 출근 — 값은 docs/essentials.md */
   morning: {
+    /** 집 → 경강선 승강장 */
+    homeToPlatformWalkMin: 10,
     /**
-     * 지하철(판교역) 하차 → 버스/셔틀 탑승 지점 도보
-     * 다음 버스까지 이 시간 이상 남으면 대기와 겹쳐 도보 시간을 차감한다.
+     * 판교역 하차 → 버스/셔틀 정류장
+     * 다음 버스까지 이 시간 이상 남으면 대기와 겹쳐 도보를 차감한다.
      */
     subwayToBusWalkMin: 5,
+    /** 버스/셔틀 → 네오위즈 (380·셔틀·602-2B 일괄) */
+    busToOfficeMin: 10,
     modes: {
       '380': {
         id: '380' as const,
         label: '380',
-        /** 판교역서편 → 회사 인근 승차시간 */
-        rideMin: 8,
-        /** 하차 후 회사까지 도보 */
-        walkToOfficeMin: 5,
-        /** 602-2B 대비 대략 유리한 시간(분) — 참고용 */
-        fasterThan602bMin: 5,
         enabled: true,
         boardStationKey: 'pangyo-west' as const,
       },
       shuttle: {
         id: 'shuttle' as const,
         label: '셔틀',
-        rideMin: 10,
-        walkToOfficeMin: 8,
         enabled: true,
         boardStationKey: null,
       },
       '602-2B': {
         id: '602-2B' as const,
         label: '602-2B',
-        rideMin: 8,
-        walkToOfficeMin: 10,
         enabled: true,
         boardStationKey: 'pangyo-west' as const,
       },
@@ -54,11 +48,10 @@ export const COMMUTE = {
 
   /** 퇴근 */
   evening: {
-    /**
-     * 사무실 → 버스/셔틀 탑승 지점 도보
-     * 다음 버스까지 이 시간 이상 남으면 대기와 겹쳐 도보 시간을 차감한다.
-     */
+    /** 사무실 → 버스 정류장 */
     officeToBusWalkMin: 5,
+    /** 출구 → 버스 정류장 */
+    exitToBusWalkMin: 1,
     /** 셔틀·380 승차 후 판교역까지 */
     busToPangyoRideMin: 10,
     /**
@@ -91,3 +84,10 @@ export const COMMUTE_LABEL = {
   morning: '출근',
   evening: '퇴근',
 } as const
+
+/** 이 시각(분) 미만은 출근(집·판교역), 이후는 퇴근만 */
+export const COMMUTE_SPLIT_MIN = 15 * 60
+
+export function isMorningWindow(now: Date): boolean {
+  return now.getHours() * 60 + now.getMinutes() < COMMUTE_SPLIT_MIN
+}

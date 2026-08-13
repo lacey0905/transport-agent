@@ -17,7 +17,7 @@ export function Panel({
   defaultOpen?: boolean
 }) {
   return (
-    <details className="panel" open={defaultOpen}>
+    <details className="panel" defaultOpen={defaultOpen}>
       <summary className="panel__summary">
         <span className={`badge badge--icon ${badgeClass ?? ''}`.trim()}>
           <Icon name={icon} />

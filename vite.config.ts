@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => {
           rewrite: (path) => {
             const rest = path.replace(/^\/api\/bus/, '')
             const sep = rest.includes('?') ? '&' : '?'
-            return `/6410000${rest}${sep}serviceKey=${encodedServiceKey}&format=json`
+            return `${rest}${sep}serviceKey=${encodedServiceKey}`
           },
         },
       },
