@@ -7,17 +7,15 @@ export function Panel({
   title,
   hint,
   children,
-  defaultOpen = false,
 }: {
   icon: string
   badgeClass?: string
   title: string
   hint: string
   children: ReactNode
-  defaultOpen?: boolean
 }) {
   return (
-    <details className="panel" defaultOpen={defaultOpen}>
+    <details className="panel">
       <summary className="panel__summary">
         <span className={`badge badge--icon ${badgeClass ?? ''}`.trim()}>
           <Icon name={icon} />
